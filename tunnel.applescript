@@ -1505,7 +1505,7 @@ on newTunnelManager()
 				on generatePortNumber()
 					
 					(*
-						Generates a port number. With reverse tunnels the local hostname and the local port is used to determine a port number between 50000 and 59999 using a hash function. Forward tunnels use the remote host's name, ssh port and remote port.
+						Generates a port number. When using reverse tunnels the local hostname and the local port is used to determine a port number between 50000 and 59999 using a hash function. Forward tunnels use the remote host's name, ssh port and remote port.
 					*)
 					
 					if isReverse() then
