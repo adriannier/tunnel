@@ -50,7 +50,7 @@ If you left the local port set to 5900, you can connect via VNC like this:
 
 - Ports 50000 through 59999 accessible to your Mac so you can connect back through the tunnel
 
-- Corresponding public key entered in authorized_keys file prefixed with `command="/sbin/nologin" ` (note the space at the end of this prefix that needs to delimit it from the key). You will find the public key in `~/Library/Application Support/Tunnel/Keys/`.
+- Corresponding public key entered in authorized_keys file prefixed with `command="/sbin/nologin" ` (note the space at the end that is necessary to delimit the prefix from the key). You will find the public key in `~/Library/Application Support/Tunnel/Keys/`.
 
 - Suggested SSH server configuration options:
 ```PasswordAuthentication no
