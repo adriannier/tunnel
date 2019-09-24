@@ -2,7 +2,7 @@
 AppleScript applet to open SSH tunnels.
 
 ## Motivation
-Feeling very reluctant to use screen sharing solutions by third parties like TeamViewer and Anydesk, I decided to automate the opening of SSH tunnels so anyone could start a connection which I could then use to access their Macs.
+Feeling very reluctant to use screen sharing solutions by third parties like TeamViewer and Anydesk, I decided to automate the opening of SSH tunnels. This way anyone can start a connection to a server controlled by me, which I could then use to access their Macs.
 
 ## Getting started
 
@@ -30,7 +30,7 @@ Feeling very reluctant to use screen sharing solutions by third parties like Tea
 
 4. The applet stays open to monitor the SSH process and starts it again if necessary
 
-5. SSH tunnel is closed when the applet is quit
+5. When the applet is quit regularly, the SSH connection is dropped
 
 ## Connecting through tunnel
 
@@ -59,5 +59,8 @@ ChallengeResponseAuthentication no
 UsePAM no
 GatewayPorts yes
 ```
+- The option `GatewayPorts yes` is particularly important
 
-- The option `GatewayPorts yes` is particularly important 
+## Development notes
+
+- When running the tunnel script from your editor, you can prepare a settings file at the path ~/Library/Application Support/Tunnel/Settings/testing.applescript for testing purposes
