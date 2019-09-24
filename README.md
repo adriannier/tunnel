@@ -59,7 +59,7 @@ ChallengeResponseAuthentication no
 UsePAM no
 GatewayPorts yes
 ```
-- The option `GatewayPorts yes` is particularly important
+- The option `GatewayPorts yes` is particularly important so you can access tunneled ports on the SSH server
 
 ## Development notes
 
