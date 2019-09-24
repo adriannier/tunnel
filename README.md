@@ -63,4 +63,4 @@ GatewayPorts yes
 
 ## Development notes
 
-- When running the tunnel script from your editor, you can prepare a settings file at the path ~/Library/Application Support/Tunnel/Settings/testing.applescript for testing purposes
+- When running the tunnel script from your editor, you can prepare a settings file at the path `~/Library/Application Support/Tunnel/Settings/testing.applescript` for testing purposes
