@@ -40,7 +40,7 @@ If you left the local port set to 5900, you can connect via VNC like this:
 
 2. Enter **vnc://** followed by the SSH server’s address, a colon, and the tunneled port number (Example: vnc://ssh.mydomain.com:58834)
 
-3. Click connect
+3. Click **Connect**
 
 ## Server requirements
 
