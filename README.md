@@ -16,7 +16,7 @@ Feeling very reluctant to use screen sharing solutions by third parties like Tea
 
 5. Run the build script again
 
-6. When asked choose to generate new key pair
+6. When asked choose to generate a new key pair
 
 6. The built applet will be shown in the Finder
 
