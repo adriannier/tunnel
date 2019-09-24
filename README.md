@@ -2,7 +2,7 @@
 AppleScript applet to open SSH tunnels.
 
 ## Motivation
-Feeling very reluctant to use screen sharing solutions by third parties like TeamViewer and Anydesk, I decided to automate the opening of SSH tunnels. This way anyone can start a connection to a server controlled by me, which I could then use to access their Macs.
+Feeling very reluctant to use screen sharing solutions by third parties like TeamViewer and Anydesk, I decided to automate the opening of SSH tunnels. This way anyone can start a connection to a server controlled by me, which I can then use to access their Macs.
 
 ## Building the applet
 
