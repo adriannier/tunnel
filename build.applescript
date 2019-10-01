@@ -384,7 +384,7 @@ on codeSignProduct()
 		
 		logMessage("Signing code")
 		
-		codeSign("-f -s", productPath(), my gSETTINGS's codeSignId)
+		codeSign("--timestamp --options runtime", productPath(), my gSETTINGS's codeSignId)
 		
 	on error eMsg number eNum
 		
@@ -583,6 +583,8 @@ on createImage()
 	
 	try
 		
+		logMessage("Creating image")
+		
 		-- Generate paths
 		set imageSourceDirectoryPath to productsDirectory() & productName() & ":"
 		set imagePath to productsDirectory() & snr(" ", "_", lowercaseText(productName())) & ".dmg"
@@ -623,6 +625,8 @@ end createImage
 on createArchive()
 	
 	try
+		
+		logMessage("Creating archive")
 		
 		-- Generate paths
 		set archivePath to productsDirectory() & snr(" ", "_", lowercaseText(productName())) & ".zip"
@@ -885,7 +889,7 @@ on codeSign(flags, aPath, identity)
 			
 			chmod("a-w", posixPath & "Contents/Resources/Scripts/main.scpt")
 			
-			do shell script "/usr/bin/codesign " & flags & " " & quoted form of identity & " " & quoted form of posixPath
+			do shell script "/usr/bin/codesign " & flags & " --sign " & quoted form of identity & " " & quoted form of posixPath
 			
 		end if
 		
@@ -929,7 +933,7 @@ on logMessage(msg)
 	
 	if appName is "Script Editor" then
 		log " " & msg & " "
-	else if appName is not "osascript" then
+	else if appName is "osascript" then
 		log msg
 	end if
 	
