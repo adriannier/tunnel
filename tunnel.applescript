@@ -27,7 +27,7 @@ property pEDITOR_NAMES : {"AppleScript Editor", "Script Editor", "Coda"}
 
 property pDEBUG_MODE : false
 
-property pSYSTEM_LANGUAGE : missing value
+global gSYSTEM_LANGUAGE
 
 property pTUNNEL_MANAGER : missing value
 
@@ -661,17 +661,17 @@ end _______________________________________________LOCALIZATION
 on systemLanguage()
 	
 	try
-		set lng to my pSYSTEM_LANGUAGE
+		set lng to my gSYSTEM_LANGUAGE
 		if lng is missing value then error 1
 		return lng
 	end try
 	
 	try
 		set lng to first word of (do shell script "/usr/bin/defaults read NSGlobalDomain AppleLanguages")
-		set my pSYSTEM_LANGUAGE to lng
+		set gSYSTEM_LANGUAGE to lng
 		return lng
 	on error
-		set my pSYSTEM_LANGUAGE to "en"
+		set gSYSTEM_LANGUAGE to "en"
 		return "en"
 	end try
 	
