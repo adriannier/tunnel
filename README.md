@@ -44,7 +44,7 @@ If you left the local port set to 5900, you can connect via VNC like this:
 
 ## Server requirements
 
-- SSH service turned on and accessible to the user specified in the applet’s build settings
+- SSH service turned on and accessible to the user name specified in the applet’s build settings
 
 - SSH service reachable at the address and port specified in the applet’s build settings
 
@@ -59,7 +59,7 @@ ChallengeResponseAuthentication no
 UsePAM no
 GatewayPorts yes
 ```
-- The option `GatewayPorts yes` is particularly important so you can access tunneled ports on the SSH server
+- The option `GatewayPorts yes` is particularly important so you can access tunneled ports (50000 through 59999) on the SSH server
 
 ## Development notes
 
