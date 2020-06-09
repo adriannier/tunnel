@@ -2,6 +2,8 @@ global gPROJECT_DIRECTORY
 global gDATA_DIRECTORY
 global gSETTINGS
 
+property pVERSION : "1.0.0"
+
 on run
 	
 	try
@@ -148,6 +150,12 @@ on loadBuildSettings(settingsPath)
 		end try
 		
 		try
+			set S's bundleIdentifier to L's bundleIdentifier
+		on error
+			error "Bundle identifier is missing"
+		end try
+		
+		try
 			set S's sshUserName to L's sshUserName
 		on error
 			error "SSH user name is missing"
@@ -176,9 +184,17 @@ on loadBuildSettings(settingsPath)
 		end try
 		
 		try
-			set S's keyName to L's keyName
+			set S's keyNames to L's keyNames
 		on error
-			error "Key name is missing"
+			try
+				set S's keyNames to {L's keyName}
+			on error eMsg number eNum
+				error "Key name is missing: " & eMsg
+			end try
+		end try
+		
+		try
+			set S's keyPassword to L's keyPassword
 		end try
 		
 		try
@@ -223,6 +239,12 @@ on productNameWithSuffix()
 	
 end productNameWithSuffix
 
+on bundleIdentifier()
+	
+	return my gSETTINGS's bundleIdentifier
+	
+end bundleIdentifier
+
 on resourceInProductAtRelativePath(aPath)
 	
 	return productPath() & ":" & aPath
@@ -234,7 +256,7 @@ end ____________________________BUILDING
 
 on emptyBuildSettings()
 	
-	return {productName:"", connectionName:"", sshUserName:"", postProcess:"", localPort:"", remoteHosts:"", remotePorts:"", keyName:"", iconName:"", codeSignId:""}
+	return {productName:"", connectionName:"", bundleIdentifier:"", sshUserName:"", postProcess:"", localPort:"", remoteHosts:"", remotePorts:"", keyNames:"", keyPassword:"", iconName:"", codeSignId:""}
 	
 end emptyBuildSettings
 
@@ -245,6 +267,9 @@ property productName : \"Open Tunnel\" -- Text
 
 (** The name for the connection **)
 property connectionName : \"Example\" -- Text
+
+(** The bundle identifier for the applet **)
+property bundleIdentifier : \"com.example.connection\" -- Text
 
 (** The login name of the SSH client **)
 property sshUserName : \"tunnel\" -- Text
@@ -281,8 +306,12 @@ property remotePorts : {22} -- Integer or list of lists of integers
       The first host will be contacted over port 22 or 30123.
       Communication with the second host will be attempted over port 80 and 443. *)
 
-(** Name of the client's private key **)
-property keyName : \"tunnel\" -- Text
+(** Name of the client's private keys **)
+property keyNames : {\"id_ed52219\"} -- Text
+
+(** Password for the client's private key (LEAVE EMPTY, NOT YET SUPPORTED) **)
+property keyPassword : \"\" -- Text
+
 
 (** Name of the icon file used for the built applet **)
 property iconName : \"\" -- Text
@@ -302,13 +331,15 @@ on build()
 	
 	try
 		
-		checkKey()
+		checkKeys()
 		
 		checkIcon()
 		
 		compileMainScript()
 		
-		copyKey()
+		setInfo()
+		
+		copyKeys()
 		
 		copyIcon()
 		
@@ -321,6 +352,25 @@ on build()
 	end try
 	
 end build
+
+on setInfo()
+	
+	try
+		
+		logMessage("Setting info")
+		
+		set infoPath to resourceInProductAtRelativePath("Contents:Info.plist")
+		
+		defaults("write", infoPath, "CFBundleIdentifier", bundleIdentifier())
+		defaults("write", infoPath, "CFBundleShortVersionString", my pVERSION)
+		
+	on error eMsg number eNum
+		
+		error "setInfo: " & eMsg number eNum
+		
+	end try
+	
+end setInfo
 
 on compileMainScript()
 	
@@ -335,6 +385,8 @@ on compileMainScript()
 		set theSource to insertProperty(theSource, "pSSH_LOGIN", my gSETTINGS's sshUserName)
 		set theSource to insertProperty(theSource, "pREMOTE_HOSTS", my gSETTINGS's remoteHosts)
 		set theSource to insertProperty(theSource, "pREMOTE_PORTS", my gSETTINGS's remotePorts)
+		set theSource to insertProperty(theSource, "pKEY_NAMES", my gSETTINGS's keyNames)
+		set theSource to insertProperty(theSource, "pKEY_PASSWORD", my gSETTINGS's keyPassword)
 		
 		set tempPath to temporaryPath()
 		
@@ -462,30 +514,64 @@ end copyIcon
 on ____________________________KEY()
 end ____________________________KEY
 
-on keyPath()
+on keyCount()
 	
-	return my gDATA_DIRECTORY & "Keys:" & my gSETTINGS's keyName
+	return count of (my gSETTINGS's keyNames)
+	
+end keyCount
+
+on keyPath(keyName)
+	
+	return my gDATA_DIRECTORY & "Keys:" & keyName
 	
 end keyPath
 
-on checkKey()
+on keyPassword()
+	
+	return (my gSETTINGS's keyPassword)
+	
+end keyPassword
+
+on checkKeys()
+	
+	try
+		
+		repeat with i from 1 to keyCount()
+			
+			set keyName to item i of (my gSETTINGS's keyNames)
+			
+			checkKey(keyName)
+			
+		end repeat
+		
+	on error eMsg number eNum
+		
+		error "checkKeys: " & eMsg number eNum
+		
+	end try
+	
+end checkKeys
+
+on checkKey(keyName)
 	
 	try
 		(* Regenerate key if necessary *)
 		
-		if existsFile(keyPath()) is false then
+		set pathForKey to keyPath(keyName)
+		
+		if existsFile(pathForKey) is false then
 			
 			activate
 			
-			display alert "Key pair missing" message "Would you like to generate a new key pair?" buttons {"Cancel Build", "Generate Key Pair"} default button 2 cancel button 1
+			display alert "Key pair \"" & keyName & "\" missing" message "Would you like to generate a new key pair?" buttons {"Cancel Build", "Generate Key Pair"} default button 2 cancel button 1
 			
-			generateKey()
+			generateKey(keyName)
 			
 		end if
 		
-		if existsFile(keyPath()) is false then
+		if existsFile(pathForKey) is false then
 			
-			error "Key missing at path \"" & keyPath() & "\""
+			error "Key missing at path \"" & pathForKey & "\""
 			
 		end if
 		
@@ -497,23 +583,29 @@ on checkKey()
 	
 end checkKey
 
-on generateKey()
+on generateKey(keyName)
 	
 	try
 		
-		set generatedKeyPath to keyPath()
+		set pathForKey to keyPath(keyName)
 		
-		set keyDirectoryPath to hfsPathForParent(generatedKeyPath)
+		try
+			set keyType to item -1 of explodeString(keyName, "_", false)
+		on error
+			error "Could not derive key type from key name \"" & keyName & "\""
+		end try
+		
+		set keyDirectoryPath to hfsPathForParent(pathForKey)
 		
 		mkdir("-p", keyDirectoryPath)
 		
 		set keyComment to "Generated for tunneling (" & timestampWithFormat(current date, 1) & ")"
 		
-		rm("-f", generatedKeyPath)
+		rm("-f", pathForKey)
 		
-		rm("-f", generatedKeyPath & ".pub")
+		rm("-f", pathForKey & ".pub")
 		
-		do shell script "/usr/bin/ssh-keygen -q -C " & quoted form of keyComment & " -t rsa -N '' -f " & qpp(generatedKeyPath)
+		do shell script "/usr/bin/ssh-keygen -q -C " & quoted form of keyComment & " -t " & quoted form of keyType & " -N " & quoted form of keyPassword() & " -f " & qpp(pathForKey)
 		
 	on error eMsg number eNum
 		
@@ -523,14 +615,34 @@ on generateKey()
 	
 end generateKey
 
-
-on copyKey()
+on copyKeys()
 	
 	try
 		
-		logMessage("Copying key")
+		repeat with i from 1 to keyCount()
+			
+			set keyName to item i of (my gSETTINGS's keyNames)
+			
+			copyKey(keyName)
+			
+		end repeat
 		
-		ditto("", keyPath(), resourceInProductAtRelativePath("Contents:Resources:Keys:client"))
+	on error eMsg number eNum
+		
+		error "copyKeys: " & eMsg number eNum
+		
+	end try
+	
+end copyKeys
+
+
+on copyKey(keyName)
+	
+	try
+		
+		logMessage("Copying key \"" & keyName & "\"")
+		
+		ditto("", keyPath(keyName), resourceInProductAtRelativePath("Contents:Resources:Keys:" & keyName))
 		
 	on error eMsg number eNum
 		
@@ -828,14 +940,18 @@ on test(flags, aPath)
 end test
 
 on mkdir(flags, aPath)
-	
-	do shell script "/bin/mkdir " & flags & " " & qpp(aPath)
+
+	set cmd to "/bin/mkdir " & flags & " " & qpp(aPath)
+	log cmd
+	do shell script cmd
 	
 end mkdir
 
 on rm(flags, aPath)
-	
-	do shell script "/bin/rm " & flags & " " & qpp(aPath)
+
+	set cmd to "/bin/rm " & flags & " " & qpp(aPath)
+	log cmd
+	do shell script cmd
 	
 end rm
 
@@ -853,13 +969,17 @@ end echo
 
 on chmod(permissions, aPath)
 	
-	do shell script "/bin/chmod " & permissions & " " & qpp(aPath)
+	set cmd to "/bin/chmod " & permissions & " " & qpp(aPath)
+	log cmd
+	do shell script cmd
 	
 end chmod
 
 on xattr(flags, aPath)
 	
-	do shell script "/usr/bin/xattr " & flags & " " & qpp(aPath)
+	set cmd to "/usr/bin/xattr " & flags & " " & qpp(aPath)
+	log cmd
+	do shell script cmd
 	
 end xattr
 
@@ -867,13 +987,28 @@ on ditto(flags, path1, path2)
 	
 	rm("-rf", path2)
 	
-	do shell script "/usr/bin/ditto " & flags & " " & qpp(path1) & " " & qpp(path2)
+	set cmd to "/usr/bin/ditto " & flags & " " & qpp(path1) & " " & qpp(path2)
+	log cmd
+	do shell script cmd
 	
 	if existsFile(path2) is false and existsDirectory(path2) is false then
 		error "Copying " & path1 & " to " & path2 & " failed." number 1
 	end if
 	
 end ditto
+
+on defaults(aVerb, filePath, aKey, aValue)
+	
+	if aValue is not missing value then
+		set cmd to "/usr/bin/defaults " & aVerb & " " & qpp(filePath) & " " & quoted form of aKey & " " & aValue
+	else
+		set cmd to "/usr/bin/defaults " & aVerb & " " & qpp(filePath) & " " & quoted form of aKey
+	end if
+	
+	log cmd
+	do shell script cmd
+	
+end defaults
 
 on codeSign(flags, aPath, identity)
 	
@@ -889,7 +1024,11 @@ on codeSign(flags, aPath, identity)
 			
 			chmod("a-w", posixPath & "Contents/Resources/Scripts/main.scpt")
 			
-			do shell script "/usr/bin/codesign " & flags & " --sign " & quoted form of identity & " " & quoted form of posixPath
+			set cmd to "/usr/bin/codesign " & flags & " --sign " & quoted form of identity & " " & quoted form of posixPath
+			
+			log cmd
+			
+			do shell script cmd
 			
 		end if
 		
@@ -903,7 +1042,9 @@ end codeSign
 
 on osacompile(flags, inputFile, outputFile)
 	
-	do shell script "/usr/bin/osacompile " & flags & " -o " & qpp(outputFile) & " " & qpp(inputFile)
+	set cmd to "/usr/bin/osacompile " & flags & " -o " & qpp(outputFile) & " " & qpp(inputFile)
+	log cmd
+	do shell script cmd
 	
 end osacompile
 
@@ -1042,6 +1183,25 @@ on snr(searchObj, theReplacement, aText)
 	
 	
 end snr
+
+on explodeString(aString, aDelimiter, lastItem)
+	
+	try
+		
+		if lastItem is false then set lastItem to -1
+		
+		set prvDlmt to AppleScript's text item delimiters
+		set AppleScript's text item delimiters to aDelimiter
+		set aList to text items 1 thru lastItem of aString
+		set AppleScript's text item delimiters to prvDlmt
+		
+		return aList
+		
+	on error eMsg number eNum
+		error "explodeString(): " & eMsg number eNum
+	end try
+	
+end explodeString
 
 on convertListToText(obj)
 	

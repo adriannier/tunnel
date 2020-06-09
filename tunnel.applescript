@@ -21,7 +21,9 @@ property pREMOTE_PORTS : missing value -- Integer or list of lists of integers
 --    The first host will be contacted over port 22 or 30123.
 --    Communication with the second host will be attempted over port 80 and 443.
 
-property pKEY_PATH : missing value
+property pKEY_NAMES : missing value
+
+property pKEY_PASSWORD : missing value
 
 property pEDITOR_NAMES : {"AppleScript Editor", "Script Editor", "Coda"}
 
@@ -92,6 +94,10 @@ on main()
 		
 		showSuccess() -- Displays information to the user
 		
+		if (my pRUNS_IN_EDITOR) then
+			tell my pTUNNEL_MANAGER to closeTunnels()
+		end if
+		
 	on error eMsg number eNum
 		
 		logMessage(eMsg & " (" & (eNum as text) & ")")
@@ -132,15 +138,8 @@ on init()
 		set my pREMOTE_PORTS to L's remotePorts
 		set my pLOCAL_PORT to L's localPort
 		set my pSSH_LOGIN to L's sshUserName
-		set my pKEY_PATH to appSupportDirectory & "Tunnel:Keys:" & L's keyName
-		
-	else
-		
-		try
-			set my pKEY_PATH to pathToResource("client", "Keys") -- Get path to the private key
-		on error
-			error "Private key missing"
-		end try
+		set my pKEY_NAMES to L's keyNames
+		set my pKEY_PASSWORD to L's keyPassword
 		
 	end if
 	
@@ -242,30 +241,52 @@ on openTunnel(localPort, remoteHost, remotePort, userName)
 	
 	set aManager to newTunnelManager() -- Create a new Tunnel Manager
 	
-	tell aManager
+	repeat with i from 1 to count of my pKEY_NAMES
 		
-		-- Initialize Tunnel Manager
-		init(remoteHost, remotePort, userName)
+		set keyName to item i of my pKEY_NAMES
+		set pathForKey to pathToResource(keyName, "Keys")
 		
-		-- Set key path
-		setKeyFilePath(my pKEY_PATH)
+		try
+			do shell script "/usr/bin/ssh-keygen -P '' -e -f " & qpp(pathForKey)
+			exit repeat
+		on error eMsg number eNum
+			set pathForKey to false
+		end try
 		
-		if (my pDEBUG_MODE) then enableDebugMode()
-		
-		-- Initialize tunnel
-		set sshTunnel to newTunnel()'s initWithLocalPort(localPort)
-		
-		-- Close existing tunnel
-		closeTunnels()
-		
-		-- Open tunnel
-		openTunnels()
-		
-	end tell
+	end repeat
 	
-	set my pTUNNEL_MANAGER to aManager
-	
-	return
+	if pathForKey is false then
+		
+		error "None of the keys are supported on this system" number 1
+		
+	else
+		
+		tell aManager
+			
+			-- Initialize Tunnel Manager
+			init(remoteHost, remotePort, userName)
+			
+			-- Set key path
+			setKeyFilePath(pathForKey)
+			
+			if (my pDEBUG_MODE) then enableDebugMode()
+			
+			-- Initialize tunnel
+			set sshTunnel to newTunnel()'s initWithLocalPort(localPort)
+			
+			-- Close existing tunnel
+			closeTunnels()
+			
+			-- Open tunnel
+			openTunnels()
+			
+		end tell
+		
+		set my pTUNNEL_MANAGER to aManager
+		
+		return
+		
+	end if
 	
 end openTunnel
 
@@ -455,10 +476,24 @@ on pathToResource(resourceName, directoryName)
 	
 	try
 		
-		if directoryName is false then
-			return path to resource resourceName
+		if my pRUNS_IN_EDITOR then
+			
+			set appSupportDirectory to path to application support folder from user domain as text
+			
+			if directoryName is false then
+				return appSupportDirectory & "Tunnel:" & resourceName
+			else
+				return appSupportDirectory & "Tunnel:" & directoryName & ":" & resourceName
+			end if
+			
 		else
-			return path to resource resourceName in directory directoryName
+			
+			if directoryName is false then
+				return path to resource resourceName
+			else
+				return path to resource resourceName in directory directoryName
+			end if
+			
 		end if
 		
 	on error eMsg number eNum
@@ -466,6 +501,12 @@ on pathToResource(resourceName, directoryName)
 	end try
 	
 end pathToResource
+
+on qpp(aPath)
+	
+	return quoted form of (POSIX path of aPath)
+	
+end qpp
 
 on displayMessage(aMessage, aTitle, someButtons, defaultButton, cancelButton, anIcon, aTimeout)
 	
@@ -1104,7 +1145,9 @@ on newTunnelManager()
 					
 					try
 						
-						do shell script composeShellCommand()
+						set cmd to composeShellCommand()
+						
+						do shell script cmd
 						
 						if isOptional() is false then waitForTunnelToOpen()
 						
